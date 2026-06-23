@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$id": "https://local-crew/schema/role.schema.json",
+  "title": "Role frontmatter",
+  "description": "Structure of the YAML frontmatter expected at the top of every roles/*.md file. Never describes an LLM model: that's the binding's job, not the role's.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "tools", "output_format"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Role identifier, used as a key in bindings/*.yml files."
+    },
+    "tools": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "List of tools this role is allowed to invoke."
+    },
+    "output_format": {
+      "type": "string",
+      "enum": ["markdown", "code"],
+      "description": "Expected format of the output produced by this role."
+    },
+    "stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tech stack targeted by this role. Optional block: omit entirely for roles not tied to a code stack (CTO, PM, QA).",
+      "properties": {
+        "language": { "type": "string" },
+        "framework": { "type": "string" },
+        "styling": { "type": "string" },
+        "testing": { "type": "string" }
+      },
+      "required": ["language", "framework"]
+    }
+  }
+}

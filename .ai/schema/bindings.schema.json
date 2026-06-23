@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$id": "https://local-crew/schema/bindings.schema.json",
+  "title": "Bindings file",
+  "description": "Structure of a bindings/*.yml file: role -> model mapping for a given machine profile. Single source of truth for the role/model association.",
+  "type": "object",
+  "minProperties": 1,
+  "additionalProperties": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["model", "temperature", "num_ctx", "keep_alive"],
+    "properties": {
+      "model": {
+        "type": "string",
+        "description": "Model name as known by Ollama, e.g. qwen2.5-coder:14b."
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 2
+      },
+      "num_ctx": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "keep_alive": {
+        "description": "How long the model stays loaded in memory after the last request. -1 = indefinitely, a string like '30m' = bounded duration.",
+        "oneOf": [
+          { "type": "integer", "enum": [-1] },
+          { "type": "string", "pattern": "^[0-9]+(s|m|h)$" }
+        ]
+      },
+      "db": {
+        "type": "object",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "required": ["enabled"],
+            "properties": {
+              "enabled": { "type": "boolean", "const": false }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "required": ["enabled", "type", "collection"],
+            "properties": {
+              "enabled": { "type": "boolean", "const": true },
+              "type": { "type": "string", "enum": ["pgvector"] },
+              "collection": { "type": "string" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
