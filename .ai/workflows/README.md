@@ -1,0 +1,42 @@
+# Workflows
+
+This folder holds exported n8n workflow JSON files that orchestrate
+the agent crew. No workflow lives here yet — this file only sets the
+integration convention before the first ones get exported.
+
+## How a workflow resolves a role's config
+
+Before calling Ollama, a workflow resolves the role's configuration
+(model, temperature, context size, keep_alive) through an **Execute
+Command** node that calls `binding_loader.rb`:
+
+```bash
+ruby .ai/scripts/lib/binding_loader.rb --role backend_dev --profile mac-studio-64gb
+```
+
+It prints a single JSON object to stdout:
+
+```json
+{"role":"backend_dev","model":"qwen2.5-coder:14b","temperature":0.2,"num_ctx":16384,"keep_alive":-1,"db":{"enabled":false}}
+```
+
+The next node parses that JSON and uses it to build the
+`POST /api/chat` request sent directly to Ollama (`ollama_host` from
+the profile, `http://localhost:11434` by default). `binding_loader.rb`
+never makes a network call itself — it only resolves config.
+
+**Why a CLI instead of a dedicated HTTP server**: it's the simplest
+thing that works, consistent with not building infrastructure ahead
+of a real need. If usage grows (several workflows running
+concurrently, subprocess latency becoming noticeable), a small
+Sinatra/Rack server wrapping the same classes (`BindingLoader`,
+`RamEstimator`) is a possible evolution without rewriting the
+underlying logic.
+
+## Naming convention
+
+One exported workflow per role, named `<role>.json` (e.g.
+`backend_dev.json`), plus an optional `orchestrator.json` for the
+workflow that routes between roles. The exported file name must match
+exactly the `name` declared in that role's frontmatter
+(`roles/*.md`).
