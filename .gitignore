@@ -1,0 +1,5 @@
+/.bundle/
+/vendor/bundle/
+Gemfile.lock.bak
+*.log
+.DS_Store
