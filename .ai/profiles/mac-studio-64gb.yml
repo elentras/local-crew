@@ -1,0 +1,18 @@
+# Machine capacity profile — describes what the machine can handle,
+# independently of the models actually assigned to roles (that's the
+# corresponding binding's job).
+
+total_memory_gb: 64
+
+# RAM reserved for the OS, foreground apps, and the rest of the stack
+# (Postgres/pgvector, n8n, etc.) running on the same machine.
+reserved_system_gb: 8
+
+available_for_models_gb: 56
+
+# Number of distinct models Ollama can keep loaded in memory at once
+# on this machine. Acts as a guard complementary to the RAM limit in
+# the validation script.
+max_concurrent_models: 3
+
+ollama_host: "http://localhost:11434"
