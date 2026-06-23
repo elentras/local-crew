@@ -1,8 +1,15 @@
 # Workflows
 
 This folder holds exported n8n workflow JSON files that orchestrate
-the agent crew. No workflow lives here yet — this file only sets the
-integration convention before the first ones get exported.
+the agent crew.
+
+`backend_dev.json` is the first one: Manual Trigger → Set Prompt →
+Execute Command (`binding_loader.rb`) → Code (build the Ollama
+payload) → HTTP Request (`POST /api/chat`) → Code (extract the
+reply). It hardcodes the repo's absolute path in the Execute Command
+node and `http://localhost:11434` in the HTTP Request node — fine for
+a first local proof of concept, but worth revisiting (env var or
+n8n credential) before this travels to another machine or repo.
 
 ## How a workflow resolves a role's config
 
