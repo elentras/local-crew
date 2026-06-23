@@ -3,13 +3,23 @@
 This folder holds exported n8n workflow JSON files that orchestrate
 the agent crew.
 
-`backend_dev.json` is the first one: Manual Trigger → Set Prompt →
-Execute Command (`binding_loader.rb`) → Code (build the Ollama
-payload) → HTTP Request (`POST /api/chat`) → Code (extract the
-reply). It hardcodes the repo's absolute path in the Execute Command
-node and `http://localhost:11434` in the HTTP Request node — fine for
-a first local proof of concept, but worth revisiting (env var or
-n8n credential) before this travels to another machine or repo.
+`backend_dev.json` and `pm.json` follow the same chain: Manual
+Trigger → Set Prompt → Execute Command (`binding_loader.rb`) → Code
+(build the Ollama payload) → HTTP Request (`POST /api/chat`) → Code
+(extract the reply). They hardcode the repo's absolute path in the
+Execute Command node and `http://localhost:11434` in the HTTP
+Request node — fine for a first local proof of concept, but worth
+revisiting (env var or n8n credential) before this travels to
+another machine or repo.
+
+**Importing**: the n8n editor's "Import from File" dialog rejected
+these files in testing (generic "doesn't seem to be a workflow JSON"
+error) even though the JSON is well-formed. The CLI importer accepts
+them without issue:
+
+```bash
+npx n8n import:workflow --input=.ai/workflows/<role>.json
+```
 
 ## How a workflow resolves a role's config
 

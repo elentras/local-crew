@@ -1,0 +1,101 @@
+{
+  "name": "pm",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9950ac51-ef37-40fc-a652-91abb448cc5e",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "prompt",
+              "type": "string",
+              "value": "Turn this into a user story with acceptance criteria: users should be able to export their order history as a CSV file."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "130c8316-8fb9-473d-83fa-51fe9b502874",
+      "name": "Set Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "command": "cd /Users/elentras/Projects/local-crew && ruby .ai/scripts/lib/binding_loader.rb --role pm --profile mac-studio-64gb"
+      },
+      "id": "81a0e0e8-f1c5-4dbd-8586-3c37f24b0645",
+      "name": "Resolve Role Config",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const roleConfig = JSON.parse($input.first().json.stdout);\nconst prompt = $('Set Prompt').first().json.prompt;\n\nreturn [{\n  json: {\n    model: roleConfig.model,\n    stream: false,\n    keep_alive: roleConfig.keep_alive,\n    options: {\n      temperature: roleConfig.temperature,\n      num_ctx: roleConfig.num_ctx\n    },\n    messages: [\n      { role: 'system', content: 'You are the pm role. Follow the instructions in .ai/roles/pm.md.' },\n      { role: 'user', content: prompt }\n    ]\n  }\n}];"
+      },
+      "id": "599ecd24-08a1-4902-8f70-ea582958d875",
+      "name": "Build Ollama Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "5ae53c4e-a3a0-4f27-a09a-e20146899025",
+      "name": "Call Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { reply: $input.first().json.message.content } }];"
+      },
+      "id": "29e33496-23f0-4177-aa7d-b2b4556c7df8",
+      "name": "Extract Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Set Prompt", "type": "main", "index": 0 }]]
+    },
+    "Set Prompt": {
+      "main": [[{ "node": "Resolve Role Config", "type": "main", "index": 0 }]]
+    },
+    "Resolve Role Config": {
+      "main": [[{ "node": "Build Ollama Request", "type": "main", "index": 0 }]]
+    },
+    "Build Ollama Request": {
+      "main": [[{ "node": "Call Ollama", "type": "main", "index": 0 }]]
+    },
+    "Call Ollama": {
+      "main": [[{ "node": "Extract Reply", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "local-crew"
+  },
+  "id": "01d77bc0-c3d3-4ec4-bcd7-1025e7a06a9f"
+}
