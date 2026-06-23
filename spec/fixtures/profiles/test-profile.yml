@@ -1,0 +1,5 @@
+total_memory_gb: 32
+reserved_system_gb: 4
+available_for_models_gb: 28
+max_concurrent_models: 2
+ollama_host: "http://localhost:11434"
