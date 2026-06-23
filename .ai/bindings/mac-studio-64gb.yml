@@ -1,0 +1,57 @@
+# Role -> model binding for the mac-studio-64gb profile.
+#
+# Single source of truth for the role -> LLM mapping. roles/*.md
+# files never reference a model directly: switching machines should
+# only ever touch this file (and its matching profile), never roles/.
+#
+# RAM budget if everything is loaded at once (Q4_K_M): ~52GB, against
+# 56GB available on this profile — deliberately tight margin.
+# validate_bindings.rb recomputes this total from the real on-disk
+# size of installed models (the `size` field from the Ollama API),
+# not from this indicative estimate.
+#
+# The profile's max_concurrent_models is 3: only backend_dev,
+# frontend_dev and qa (the roles used continuously during a dev
+# session) stay persistent. cto and pm are consulted more
+# occasionally (architecture, story writing) — a short reload delay
+# on first call is acceptable for those two.
+
+cto:
+  model: qwen2.5:32b-instruct
+  temperature: 0.3
+  num_ctx: 8192
+  keep_alive: 2m
+  db:
+    enabled: false # architecture arbitration: no RAG needed, context comes from the other roles
+
+pm:
+  model: qwen2.5:14b-instruct
+  temperature: 0.4
+  num_ctx: 8192
+  keep_alive: 2m
+  db:
+    enabled: false # business request rewording: no knowledge base to query for now
+
+backend_dev:
+  model: qwen2.5-coder:14b
+  temperature: 0.2
+  num_ctx: 16384
+  keep_alive: -1
+  db:
+    enabled: false # codebase RAG conceivable later (pgvector over spec/migration history), not needed yet
+
+frontend_dev:
+  model: qwen2.5-coder:14b
+  temperature: 0.2
+  num_ctx: 16384
+  keep_alive: 30m
+  db:
+    enabled: false # same remark as backend_dev, no RAG need identified at this stage
+
+qa:
+  model: llama3.1:8b # llama3.1:8b-instruct doesn't exist in the Ollama registry, only this tag is available
+  temperature: 0.1
+  num_ctx: 8192
+  keep_alive: -1
+  db:
+    enabled: false # acceptance-criteria validation, no knowledge base to query
