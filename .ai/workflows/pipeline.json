@@ -1,0 +1,143 @@
+{
+  "name": "pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b4981168-d7cd-4bed-93b7-eb297762feed",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "feature_request",
+              "type": "string",
+              "value": "Users should be able to export their order history as a CSV file."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bf765825-cc48-4025-ad85-542ba87e9b84",
+      "name": "Set Feature Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "841e2429-310c-40c8-914e-9a75fd7bce34",
+          "mode": "list",
+          "cachedResultName": "router"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "role": "pm",
+            "prompt": "=Turn this into a user story with acceptance criteria: {{ $json.feature_request }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "role", "displayName": "role", "required": false, "type": "string" },
+            { "id": "prompt", "displayName": "prompt", "required": false, "type": "string" }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "bede786d-6218-4111-b389-cf6ea054c571",
+      "name": "Call PM",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "841e2429-310c-40c8-914e-9a75fd7bce34",
+          "mode": "list",
+          "cachedResultName": "router"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "role": "backend_dev",
+            "prompt": "=Implement this user story:\n\n{{ $json.reply }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "role", "displayName": "role", "required": false, "type": "string" },
+            { "id": "prompt", "displayName": "prompt", "required": false, "type": "string" }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "3627431a-8ea0-4658-8e88-9d2bca6fd53d",
+      "name": "Call Backend Dev",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "841e2429-310c-40c8-914e-9a75fd7bce34",
+          "mode": "list",
+          "cachedResultName": "router"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "role": "qa",
+            "prompt": "=Given this user story and implementation plan, list the test cases (happy path and edge cases) you'd verify before marking it done:\n\n{{ $json.reply }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "role", "displayName": "role", "required": false, "type": "string" },
+            { "id": "prompt", "displayName": "prompt", "required": false, "type": "string" }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "8e0d0c6f-b834-4d51-a3d5-d0a3f33826a3",
+      "name": "Call QA",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1080, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Set Feature Request", "type": "main", "index": 0 }]]
+    },
+    "Set Feature Request": {
+      "main": [[{ "node": "Call PM", "type": "main", "index": 0 }]]
+    },
+    "Call PM": {
+      "main": [[{ "node": "Call Backend Dev", "type": "main", "index": 0 }]]
+    },
+    "Call Backend Dev": {
+      "main": [[{ "node": "Call QA", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "local-crew"
+  },
+  "id": "b895192b-0f0c-4c2e-a8c3-95bb8a2a2c7e"
+}

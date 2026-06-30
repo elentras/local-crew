@@ -4,14 +4,17 @@
 require_relative "lib/ollama_client"
 require_relative "lib/binding_loader"
 require_relative "lib/ram_estimator"
+require_relative "lib/config"
 
 module LocalCrew
   # Orchestrates BindingLoader, OllamaClient and RamEstimator to
   # validate a binding against its profile and Ollama's real state.
   module CLI
     def self.run(argv, root: File.expand_path("..", __dir__))
-      profile_name = argv.first
-      raise BindingLoader::Error, "Usage: ruby validate_bindings.rb <profile_name>" unless profile_name
+      profile_name = argv.first || Config.new(root: root).profile
+      unless profile_name
+        raise BindingLoader::Error, "Usage: ruby validate_bindings.rb [profile_name] (or set 'profile' in config.yml)"
+      end
 
       loader = BindingLoader.new(root: root, profile_name: profile_name)
       client = OllamaClient.new(loader.profile.fetch("ollama_host"))

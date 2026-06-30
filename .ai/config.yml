@@ -1,0 +1,5 @@
+# Default profile used by the CLI tools (validate_bindings.rb,
+# pull_models.rb, binding_loader.rb) and the binding server
+# (server.rb) when none is given explicitly. Override per call with
+# --profile (CLI) or ?profile= (server), without touching this file.
+profile: mac-studio-64gb

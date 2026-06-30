@@ -1,15 +1,15 @@
 {
-  "name": "pm",
+  "name": "router",
   "nodes": [
     {
       "parameters": {},
-      "id": "9950ac51-ef37-40fc-a652-91abb448cc5e",
+      "id": "8f44f247-9769-47d2-bc2a-00143db0a03b",
       "name": "When clicking 'Execute workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
         200,
-        300
+        180
       ]
     },
     {
@@ -19,49 +19,79 @@
           "assignments": [
             {
               "id": "a1",
+              "name": "role",
+              "type": "string",
+              "value": "backend_dev"
+            },
+            {
+              "id": "a2",
               "name": "prompt",
               "type": "string",
-              "value": "Turn this into a user story with acceptance criteria: users should be able to export their order history as a CSV file."
+              "value": "Write a Rails service object that calculates monthly revenue from Order records, grouped by month."
             }
           ]
         },
         "options": {}
       },
-      "id": "130c8316-8fb9-473d-83fa-51fe9b502874",
-      "name": "Set Prompt",
+      "id": "7efe79eb-d8d4-4f57-b5b3-423615704e22",
+      "name": "Set Defaults",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
         420,
-        300
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "07f93aa8-0ab7-4901-9c0d-752b2f694461",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        400
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5a8ee964-bd3c-4e20-9bed-b43f435d2409",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        640,
+        290
       ]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "http://127.0.0.1:4567/bindings/pm",
+        "url": "=http://127.0.0.1:4567/bindings/{{ $json.role }}",
         "options": {}
       },
-      "id": "81a0e0e8-f1c5-4dbd-8586-3c37f24b0645",
+      "id": "53732a8a-74c5-4493-9656-17c9c43cf320",
       "name": "Resolve Role Config",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        640,
-        300
+        860,
+        290
       ]
     },
     {
       "parameters": {
-        "jsCode": "const roleConfig = $input.first().json;\nconst prompt = $('Set Prompt').first().json.prompt;\n\nreturn [{\n  json: {\n    model: roleConfig.model,\n    stream: false,\n    keep_alive: roleConfig.keep_alive,\n    options: {\n      temperature: roleConfig.temperature,\n      num_ctx: roleConfig.num_ctx\n    },\n    messages: [\n      { role: 'system', content: 'You are the pm role. Follow the instructions in .ai/roles/pm.md.' },\n      { role: 'user', content: prompt }\n    ]\n  }\n}];"
+        "jsCode": "const roleConfig = $input.first().json;\nconst input = $('Normalize Input').first().json;\nconst roleFile = input.role.replace(/_/g, '-');\n\nreturn [{\n  json: {\n    model: roleConfig.model,\n    stream: false,\n    keep_alive: roleConfig.keep_alive,\n    options: {\n      temperature: roleConfig.temperature,\n      num_ctx: roleConfig.num_ctx\n    },\n    messages: [\n      { role: 'system', content: `You are the ${input.role} role. Follow the instructions in .ai/roles/${roleFile}.md.` },\n      { role: 'user', content: input.prompt }\n    ]\n  }\n}];"
       },
-      "id": "599ecd24-08a1-4902-8f70-ea582958d875",
+      "id": "91b79d10-1f36-45a6-a1ba-85e868e38bd1",
       "name": "Build Ollama Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        860,
-        300
+        1080,
+        290
       ]
     },
     {
@@ -73,26 +103,26 @@
         "jsonBody": "={{ JSON.stringify($json) }}",
         "options": {}
       },
-      "id": "5ae53c4e-a3a0-4f27-a09a-e20146899025",
+      "id": "be70bb05-458c-4a64-81bd-1560ccfdedfa",
       "name": "Call Ollama",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1080,
-        300
+        1300,
+        290
       ]
     },
     {
       "parameters": {
         "jsCode": "return [{ json: { reply: $input.first().json.message.content } }];"
       },
-      "id": "29e33496-23f0-4177-aa7d-b2b4556c7df8",
+      "id": "6cf17746-c5ea-403d-856a-4ec1c9fdee05",
       "name": "Extract Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1300,
-        300
+        1520,
+        290
       ]
     }
   ],
@@ -101,14 +131,36 @@
       "main": [
         [
           {
-            "node": "Set Prompt",
+            "node": "Set Defaults",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set Prompt": {
+    "Set Defaults": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
       "main": [
         [
           {
@@ -157,5 +209,5 @@
   "meta": {
     "instanceId": "local-crew"
   },
-  "id": "01d77bc0-c3d3-4ec4-bcd7-1025e7a06a9f"
+  "id": "841e2429-310c-40c8-914e-9a75fd7bce34"
 }

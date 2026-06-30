@@ -3,6 +3,7 @@
 
 require_relative "lib/ollama_client"
 require_relative "lib/binding_loader"
+require_relative "lib/config"
 
 module LocalCrew
   # Pulls, via Ollama's HTTP API, every model referenced by a binding
@@ -10,8 +11,10 @@ module LocalCrew
   # subprocess.
   module PullModels
     def self.run(argv, root: File.expand_path("..", __dir__), &on_progress)
-      profile_name = argv.first
-      raise BindingLoader::Error, "Usage: ruby pull_models.rb <profile_name>" unless profile_name
+      profile_name = argv.first || Config.new(root: root).profile
+      unless profile_name
+        raise BindingLoader::Error, "Usage: ruby pull_models.rb [profile_name] (or set 'profile' in config.yml)"
+      end
 
       loader = BindingLoader.new(root: root, profile_name: profile_name)
       client = OllamaClient.new(loader.profile.fetch("ollama_host"))

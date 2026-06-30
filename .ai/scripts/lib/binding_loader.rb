@@ -61,19 +61,22 @@ end
 
 if $PROGRAM_NAME == __FILE__
   require "optparse"
+  require_relative "config"
 
   options = {}
   OptionParser.new do |parser|
     parser.on("--role ROLE", "Role to resolve") { |value| options[:role] = value }
-    parser.on("--profile PROFILE", "Profile/binding name") { |value| options[:profile] = value }
+    parser.on("--profile PROFILE", "Profile/binding name (defaults to config.yml's 'profile')") { |value| options[:profile] = value }
   end.parse!(ARGV)
 
+  root = File.expand_path("../..", __dir__)
+  options[:profile] ||= LocalCrew::Config.new(root: root).profile
+
   unless options[:role] && options[:profile]
-    warn "Usage: ruby binding_loader.rb --role <role> --profile <profile>"
+    warn "Usage: ruby binding_loader.rb --role <role> [--profile <profile>] (or set 'profile' in config.yml)"
     exit 1
   end
 
-  root = File.expand_path("../..", __dir__)
   loader = LocalCrew::BindingLoader.new(root: root, profile_name: options[:profile])
 
   begin
