@@ -64,6 +64,7 @@ The point of this separation: the same crew can be deployed on several machines 
 
 ```
 .ai/
+├── config.yml               # default profile name — the one thing you set per machine
 ├── roles/                  # behavior + tech stack, model-agnostic
 │   ├── cto.md
 │   ├── pm.md
@@ -82,19 +83,24 @@ The point of this separation: the same crew can be deployed on several machines 
 └── scripts/
     ├── validate_bindings.rb  # CLI: validates a binding against its profile + Ollama
     ├── pull_models.rb        # CLI: pulls every model in a binding not yet installed
+    ├── server.rb              # HTTP wrapper around BindingLoader, for n8n sub-workflows
     └── lib/
         ├── ollama_client.rb  # GET /api/tags, POST /api/chat, POST /api/pull — net/http only
         ├── binding_loader.rb # loads + schema-validates a binding; own CLI for n8n
-        └── ram_estimator.rb  # missing-model check + RAM budget math
+        ├── ram_estimator.rb  # missing-model check + RAM budget math
+        └── config.rb          # reads config.yml's default profile
 
 spec/                         # tooling tests — local-crew's own, don't travel with .ai/
 ├── validate_bindings_spec.rb
 ├── pull_models_spec.rb
+├── server_spec.rb
 ├── fixtures/
+│   └── config.yml
 └── lib/
     ├── ollama_client_spec.rb
     ├── binding_loader_spec.rb
-    └── ram_estimator_spec.rb
+    ├── ram_estimator_spec.rb
+    └── config_spec.rb
 ```
 
 Tests live at the repo root, not inside `.ai/`: copying `.ai/` into a
@@ -102,6 +108,29 @@ consumer project shouldn't also dump local-crew's own RSpec suite
 into that project's `spec/` folder. Validating the tooling is this
 repo's concern; once `.ai/` is copied elsewhere, the script is
 trusted as-is.
+
+# Configuration (`config.yml`)
+
+```yaml
+profile: mac-studio-64gb
+```
+
+The single thing every CLI tool and the binding server need to know
+is *which profile to use*. Rather than passing `--profile
+mac-studio-64gb` everywhere (or, worse, hardcoding it into every n8n
+workflow URL), `config.yml` names a default — similar to how a gem
+exposes one configuration object instead of scattering defaults
+across callers. Every entry point still accepts an explicit override
+on top of that default:
+
+- CLI: `ruby .ai/scripts/validate_bindings.rb <profile>` (positional
+  arg, falls back to `config.yml` if omitted)
+- Server: `GET /bindings/<role>?profile=<profile>` (query param,
+  falls back to `config.yml` if omitted)
+
+This is the only file you change when moving `.ai/` to a new machine
+with a different profile — no other file references a profile name
+by hand.
 
 ## Role format (`roles/*.md`)
 
@@ -157,6 +186,8 @@ Convention: `bindings/<name>.yml` always matches `profiles/<name>.yml` (same fil
 
 ```bash
 bundle exec ruby .ai/scripts/validate_bindings.rb mac-studio-64gb
+# or, relying on config.yml's default profile:
+bundle exec ruby .ai/scripts/validate_bindings.rb
 ```
 
 Exits non-zero with an explicit message (missing model + suggested `ollama pull`, RAM overshoot, or too many persistent models for the profile) instead of failing silently.
@@ -170,6 +201,8 @@ it downloads) — never an `ollama pull` subprocess.
 
 ```bash
 bundle exec ruby .ai/scripts/pull_models.rb mac-studio-64gb
+# or, relying on config.yml's default profile:
+bundle exec ruby .ai/scripts/pull_models.rb
 ```
 
 Already-installed models are skipped; nothing re-downloads on a
@@ -185,13 +218,23 @@ Tests stub the Ollama API via `webmock` — no real Ollama instance is required 
 
 # Workflows
 
-n8n workflows resolve a role's config at runtime by calling `binding_loader.rb` directly as a CLI:
+n8n workflows resolve a role's config at runtime through a small
+local server wrapping `BindingLoader`:
 
 ```bash
-ruby .ai/scripts/lib/binding_loader.rb --role backend_dev --profile mac-studio-64gb
+bundle exec ruby .ai/scripts/server.rb   # binds 127.0.0.1:4567
 ```
 
-which prints the resolved config as JSON on stdout for an n8n **Execute Command** node to parse, before the next node calls Ollama's `/api/chat` directly. See [`.ai/workflows/README.md`](.ai/workflows/README.md) for the full convention (naming, why CLI over an HTTP server for now).
+```
+GET http://127.0.0.1:4567/bindings/backend_dev
+```
+
+which returns the resolved config as JSON for the next node to use
+when calling Ollama's `/api/chat` directly. `binding_loader.rb`'s own
+CLI (`--role`/`--profile`) still works standalone for non-workflow
+use. See [`.ai/workflows/README.md`](.ai/workflows/README.md) for the
+full convention (naming, why a server instead of an Execute Command
+node, known n8n quirks).
 
 # Adding a new profile
 
@@ -214,4 +257,4 @@ The `.ai/` name is deliberately generic and decoupled from the `local-crew` repo
 # Possible extensions (not implemented)
 
 - **Per-project stack override**: today a role's stack (e.g. Rails for `backend_dev`) is fixed and shared across every consumer project. If projects ever needed different stacks for the same role, that would require a per-project override mechanism. Deliberately not implemented until a real need forces it.
-- **HTTP server instead of CLI for `binding_loader.rb`**: fine as a CLI while a single workflow calls it occasionally. If usage grows (several concurrent workflows, subprocess latency becoming noticeable), wrapping the same classes in a small Sinatra/Rack server is a possible evolution — see `.ai/workflows/README.md`.
+- **Packaging as a gem**: `config.yml` + `LocalCrew::Config` already centralize the one piece of machine-specific state (the default profile) instead of scattering it across callers, which was a prerequisite for this. Turning `scripts/lib/` into an actual gem (gemspec, `lib/local_crew.rb` entry point, `bin/` executables) is a deliberate next step, not done yet.
